@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+{% block title %}Relatórios{% endblock %}
+{% block content %}
+  <section id="relatorios" class="tab-content active">
+    <div class="page-header">
+      <h1>Relatórios</h1>
+      <p>Análises e relatórios detalhados</p>
+    </div>
+
+    <div class="content-card">
+      <div class="card-header">
+        <h3>Resumo Financeiro</h3>
+      </div>
+
+      <!-- Formulário atualizado com todos os campos necessários -->
+      <form method="GET" action="/relatorios" class="form-grid">
+        <!-- ID da Empresa -->
+        <div class="form-group">
+          <label for="idEmpresa">Empresa</label>
+          <select id="idEmpresa" name="idEmpresa" required>
+            <option value="">Selecione a empresa...</option>
+            <!-- As opções serão preenchidas dinamicamente pelo backend -->
+          </select>
+        </div>
+
+        <!-- Tipo de Filtro/Período -->
+        <div class="form-group">
+          <label for="periodo">Período</label>
+          <select id="periodo" name="periodo">
+            <option value="ultimoMes">Último mês</option>
+            <option value="ultimos3">Últimos 3 meses</option>
+            <option value="ultimos6">Últimos 6 meses</option>
+            <option value="ultimoAno">Último ano</option>
+            <option value="anoAtual">Ano atual</option>
+            <option value="anoAnterior">Ano anterior</option>
+            <option value="personalizado">Personalizado</option>
+          </select>
+        </div>
+
+        <!-- Campo de Ano -->
+        <div class="form-group">
+          <label for="ano">Ano</label>
+          <select id="ano" name="ano">
+            <option value="">Todos os anos</option>
+            <option value="2025">2025</option>
+            <option value="2024">2024</option>
+            <option value="2023">2023</option>
+            <option value="2022">2022</option>
+            <option value="2021">2021</option>
+            <option value="2020">2020</option>
+          </select>
+        </div>
+
+        <!-- Status -->
+        <div class="form-group">
+          <label for="status">Status</label>
+          <select id="status" name="status">
+            <option value="todos">Todos</option>
+            <option value="pendentes">Pendentes</option>
+            <option value="feitas">Feitas</option>
+          </select>
+        </div>
+
+        <!-- Campo de Mês (será mostrado quando período = personalizado) -->
+        <div class="form-group" id="mesGroup" style="display: none;">
+          <label for="mes">Mês</label>
+          <select id="mes" name="mes">
+            <option value="">Todos os meses</option>
+            <option value="01">Janeiro</option>
+            <option value="02">Fevereiro</option>
+            <option value="03">Março</option>
+            <option value="04">Abril</option>
+            <option value="05">Maio</option>
+            <option value="06">Junho</option>
+            <option value="07">Julho</option>
+            <option value="08">Agosto</option>
+            <option value="09">Setembro</option>
+            <option value="10">Outubro</option>
+            <option value="11">Novembro</option>
+            <option value="12">Dezembro</option>
+          </select>
+        </div>
+
+        <!-- Botões -->
+        <div class="form-group form-actions">
+          <button type="submit" class="btn btn-primary">Gerar Relatório</button>
+          <button type="reset" class="btn btn-secondary">Limpar Filtros</button>
+        </div>
+      </form>
+
+      <!-- Área do Gráfico -->
+      <div class="chart-container">
+        <canvas id="financialChart"></canvas>
+      </div>
+    </div>
+  </section>
+
+{% endblock %}

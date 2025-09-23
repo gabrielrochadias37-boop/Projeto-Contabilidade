@@ -1,0 +1,146 @@
+{% extends "base.html" %}
+{% block title %}Painel do Funcionário{% endblock %}
+{% block content %}
+<section id="dashboard" class="tab-content active">
+  <div class="page-header">
+    <h1>Painel do Funcionário</h1>
+    <p>Selecione período e, opcionalmente, filtros adicionais</p>
+    <div class="dashboard-stats">
+      <span class="dashboard-date">
+        <i class="fas fa-calendar-alt"></i>
+        Última atualização: <strong id="current-date"></strong>
+      </span>
+    </div>
+  </div>
+
+  <!-- Filtros de período, empresa e tarefa -->
+  <div class="content-card">
+    <div class="card-header">
+      <h3>Filtros</h3>
+    </div>
+    <form action="{{ url_for('dashboard.return_dashboard') }}" method="get" class="form-grid">
+      <div class="form-group">
+        <label for="periodo">Período</label>
+        <select id="periodo" name="periodo" required>
+          {% for p in periodos_disponiveis or [] %}
+            <option value="{{ p.value }}" {% if p.value == periodo_atual %}selected{% endif %}>{{ p.value|br_period }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="form-group">
+        <label for="empresa">Empresa (opcional)</label>
+        <select id="empresa" name="empresa_id">
+          <option value="">Todas as empresas</option>
+          {% for e in empresas_usuario or [] %}
+            <option value="{{ e.id }}" {% if e.id == empresa_atual %}selected{% endif %}>{{ e.nome }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="form-group">
+        <label for="tarefa_id">Tarefa (opcional)</label>
+        <select id="tarefa_id" name="tarefa_id">
+          <option value="">Todas as tarefas</option>
+          {% for t in tarefas_usuario or [] %}
+            <option value="{{ t.id }}" {% if t.id == tarefa_atual %}selected{% endif %}>{{ t.nome }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="form-actions">
+        <button type="submit" class="btn btn-primary"><i class="fas fa-filter"></i> Aplicar</button>
+        <button type="button" class="btn btn-secondary" onclick="location.reload()"><i class="fas fa-sync-alt"></i> Atualizar</button>
+      </div>
+    </form>
+  </div>
+
+  <!-- Resumo rápido -->
+  <div class="dashboard-grid">
+    <div class="metric-card" data-metric="pendentes">
+      <div class="metric-icon pendentes"><i class="fas fa-clock"></i></div>
+      <div class="metric-content">
+        <h3>Tarefas Pendentes</h3>
+        <div class="metric-value">{{ resumo.pendentes or 0 }}</div>
+        <div class="metric-footer"><small>Aguardando ação</small></div>
+      </div>
+    </div>
+    <div class="metric-card" data-metric="fazendo">
+      <div class="metric-icon fazendo"><i class="fas fa-tasks"></i></div>
+      <div class="metric-content">
+        <h3>Em Andamento</h3>
+        <div class="metric-value">{{ resumo.fazendo or 0 }}</div>
+        <div class="metric-footer"><small>Trabalhando agora</small></div>
+      </div>
+    </div>
+    <div class="metric-card" data-metric="concluidas">
+      <div class="metric-icon concluidas"><i class="fas fa-check-circle"></i></div>
+      <div class="metric-content">
+        <h3>Concluídas</h3>
+        <div class="metric-value">{{ resumo.concluidas or 0 }}</div>
+        <div class="metric-footer"><small>Finalizadas no período</small></div>
+      </div>
+    </div>
+    <div class="metric-card" data-metric="progresso">
+      <div class="metric-icon faturamento"><i class="fas fa-chart-pie"></i></div>
+      <div class="metric-content">
+        <h3>Taxa de Conclusão</h3>
+        {% set total = (resumo.pendentes or 0) + (resumo.fazendo or 0) + (resumo.concluidas or 0) %}
+        {% set pct = ( (resumo.concluidas or 0) * 100 // (total if total>0 else 1) ) %}
+        <div class="metric-value">{{ pct }}%</div>
+        <div class="metric-footer"><small>Do total de tarefas</small></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Lista de tarefas do período selecionado -->
+  <div class="content-card">
+    <div class="card-header">
+      <h3>Tarefas do Período</h3>
+    </div>
+    <div class="table-container">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Empresa</th>
+            <th>Tarefa</th>
+            <th>Tipo</th>
+            <th>Status</th>
+            <th>Vencimento</th>
+            <th>Ações</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for t in tarefas or [] %}
+          <tr>
+            <td><strong>{{ t.empresa_nome }}</strong></td>
+            <td><strong>{{ t.nome }}</strong></td>
+            <td>{{ t.tipo }}</td>
+            <td>
+              <span class="status-badge {% if t.status == 'concluida' %}status-active{% elif t.status in ['pendente'] %}status-pending{% else %}status-inactive{% endif %}">{{ t.status|capitalize }}</span>
+            </td>
+            <td>{{ t.vencimento|br_date }}</td>
+            <td>
+              <div class="card-actions">
+                {% if t.status != 'concluida' %}
+                <form action="{{ url_for('dashboard.concluir_tarefa') }}" method="post">
+                  <input type="hidden" name="periodo_id" value="{{ t.periodo_id }}">
+                  <button type="submit" class="btn btn-primary"><i class="fas fa-check"></i> Concluir</button>
+                </form>
+                {% else %}
+                <form action="{{ url_for('dashboard.retificar_tarefa') }}" method="post">
+                  <input type="hidden" name="periodo_id" value="{{ t.periodo_id }}">
+                  <button type="submit" class="btn btn-secondary"><i class="fas fa-undo"></i> Retificar</button>
+                </form>
+                {% endif %}
+              </div>
+            </td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="6" class="info-text">Nenhuma tarefa encontrada para os filtros selecionados.</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+{% endblock %}

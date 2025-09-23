@@ -1,0 +1,161 @@
+{% extends "base.html" %}
+{% block title %}Painel do Gerente{% endblock %}
+{% block content %}
+<section id="gerenciamento" class="tab-content active">
+  <div class="page-header">
+    <h1>Painel do Gerente</h1>
+    <p>Acompanhe o andamento das tarefas por setor, período e empresa</p>
+  </div>
+
+  <!-- Filtros do gerente -->
+  <div class="content-card">
+    <div class="card-header">
+      <h3>Filtros</h3>
+    </div>
+    <form id="filtroGerente" action="{{ url_for('gerenciamento.return_page') }}" method="get" class="form-grid">
+      <div class="form-group">
+        <label for="setor">Setor</label>
+        <select id="setor" name="setor_id">
+          <option value="">Todos</option>
+          {% for s in setores or [] %}
+            <option value="{{ s.id }}" {% if s.id == setor_atual %}selected{% endif %}>{{ s.nome }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="form-group">
+        <label for="periodo">Período</label>
+        <select id="periodo" name="periodo">
+          {% for p in periodos_disponiveis or [] %}
+            <option value="{{ p.value }}" {% if p.value == periodo_atual %}selected{% endif %}>{{ p.value|br_period }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="form-group">
+        <label for="empresa">Empresa</label>
+        <select id="empresa" name="empresa_id">
+          <option value="">Todas</option>
+          {% for e in empresas or [] %}
+            <option value="{{ e.id }}" {% if e.id == empresa_atual %}selected{% endif %}>{{ e.nome }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="form-actions">
+        <button type="submit" class="btn btn-primary"><i class="fas fa-filter"></i> Aplicar</button>
+      </div>
+    </form>
+  </div>
+
+  {% if resumo %}
+  <!-- Métricas agregadas -->
+  <div class="dashboard-grid">
+    <div class="metric-card">
+      <div class="metric-icon pendentes"><i class="fas fa-clock"></i></div>
+      <div class="metric-content">
+        <h3>Pendentes</h3>
+        <div class="metric-value">{{ resumo.pendentes or 0 }}</div>
+        <div class="metric-footer">Aguardando ação</div>
+      </div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-icon fazendo"><i class="fas fa-tasks"></i></div>
+      <div class="metric-content">
+        <h3>Em Andamento</h3>
+        <div class="metric-value">{{ resumo.fazendo or 0 }}</div>
+        <div class="metric-footer">No período selecionado</div>
+      </div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-icon concluidas"><i class="fas fa-check-circle"></i></div>
+      <div class="metric-content">
+        <h3>Concluídas</h3>
+        <div class="metric-value">{{ resumo.concluidas or 0 }}</div>
+        <div class="metric-footer">Finalizadas</div>
+      </div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-icon faturamento"><i class="fas fa-chart-pie"></i></div>
+      <div class="metric-content">
+        <h3>Taxa de Conclusão</h3>
+        {% set total = (resumo.pendentes or 0) + (resumo.fazendo or 0) + (resumo.concluidas or 0) %}
+        {% set pct = ( (resumo.concluidas or 0) * 100 // (total if total>0 else 1) ) %}
+        <div class="metric-value">{{ pct }}%</div>
+        <div class="metric-footer">Eficiência do setor/empresa</div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- Visão por Empresa -->
+  <div class="content-card">
+    <div class="card-header">
+      <h3>Visão por Empresa</h3>
+    </div>
+    <div class="table-container">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Empresa</th>
+            <th>Pendentes</th>
+            <th>Em Andamento</th>
+            <th>Concluídas</th>
+            <th>Conclusão</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for e in empresas_resumo or [] %}
+          {% set total_e = (e.pendentes or 0) + (e.fazendo or 0) + (e.concluidas or 0) %}
+          {% set pct_e = ((e.concluidas or 0) * 100 // (total_e if total_e>0 else 1)) %}
+          <tr>
+            <td><strong>{{ e.nome }}</strong></td>
+            <td>{{ e.pendentes or 0 }}</td>
+            <td>{{ e.fazendo or 0 }}</td>
+            <td>{{ e.concluidas or 0 }}</td>
+            <td><span class="status-badge status-active">{{ pct_e }}%</span></td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="5" class="info-text">Sem dados para os filtros selecionados.</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Visão por Responsável -->
+  <div class="content-card">
+    <div class="card-header">
+      <h3>Visão por Responsável</h3>
+    </div>
+    <div class="table-container">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Responsável</th>
+            <th>Empresa</th>
+            <th>Tarefa</th>
+            <th>Status</th>
+            <th>Período</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for r in responsaveis_tarefas or [] %}
+          <tr>
+            <td>{{ r.usuario_nome }}</td>
+            <td>{{ r.empresa_nome }}</td>
+            <td>{{ r.tarefa_nome }}</td>
+            <td><span class="status-badge {% if r.status=='concluida' %}status-active{% elif r.status=='pendente' %}status-pending{% else %}status-inactive{% endif %}">{{ r.status|capitalize }}</span></td>
+            <td>{{ r.periodo_label|br_period }}</td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="5" class="info-text">Nenhuma tarefa atribuída encontrada.</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</section>
+{% endblock %}
